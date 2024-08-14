@@ -89,10 +89,10 @@ while True:
             pts.appendleft(center)
             
             # check if the ball is to the left or right of the line
-            if int(x + radius) < mid_x:
+            if int(x + radius) < mid_x: 
                 cv2.putText(frame, "Goal", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 255, 0), 3)
             else:
-                cv2.putText(frame, "Fachri", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 0, 255), 3)
+                cv2.putText(frame, "No Goal", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 0, 255), 3)
     
     # show the frame to our screen and increment the frame counter
     cv2.imshow("Frame", frame)
