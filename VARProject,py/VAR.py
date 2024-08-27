@@ -23,7 +23,8 @@ counter = 0
 direction = ""
 score = 0
 goal_counted = False
-recording = False 
+slowmo_factor = 3
+recording = False
 out = None
 record_count = 1
 goal_time = None
@@ -56,12 +57,11 @@ while True:
     center = None
 
     height, width = frame.shape[:2]
-    blue_line_y = height - 150  # Garis biru sebagai garis pre-goal
-    green_line_y = height - 50  # Garis hijau sebagai garis goal
+    mid_x = width // 5
+    line_y = height - 50  # Garis horizontal sebagai indikator posisi bola
 
-    # Gambar garis biru (pre-goal) dan garis hijau (goal)
-    cv2.line(frame, (0, blue_line_y), (width, blue_line_y), (255, 0, 0), 2)
-    cv2.line(frame, (0, green_line_y), (width, green_line_y), (0, 255, 0), 2)
+    # Gambar garis horizontal untuk menandai posisi bola
+    cv2.line(frame, (0, line_y), (width, line_y), (0, 255, 160), 2)
     
     # Menampilkan waktu real-time di window
     elapsed_time = time.time() - start_time
@@ -81,30 +81,32 @@ while True:
             cv2.circle(frame, center, 5, (0, 0, 255), -1)
             pts.appendleft(center)
 
-            # Memulai rekaman jika bola melewati garis biru (pre-goal)
-            if int(y - radius) > blue_line_y and not recording:
-                video_name = os.path.join(output_folder, f"rekaman_{record_count}.avi")
-                out = cv2.VideoWriter(video_name, cv2.VideoWriter_fourcc(*'XVID'), 20, (width, height))
-                print(f"Started recording: {video_name}")
-                recording = True
-                record_count += 1
+            # Memulai rekaman jika bola melewati garis
+            if int(x + radius) < mid_x and not goal_counted:
+                if not recording:
+                    video_name = os.path.join(output_folder, f"rekaman_{record_count}.avi")
+                    out = cv2.VideoWriter(video_name, cv2.VideoWriter_fourcc(*'XVID'), 20, (width, height))
+                    print(f"Started recording: {video_name}")
+                    recording = True
+                    record_count += 1
 
-            # Setelah bola melewati garis hijau (goal)
-            if int(y - radius) > green_line_y and recording and not goal_counted:
+            if int(x + radius) >= mid_x and recording:
+                # Mencatat waktu goal
                 goal_time = elapsed_time
+                cv2.putText(frame, f"Goal: {goal_time:.2f} sec", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 255, 0), 3)
+                cv2.putText(frame, f"Menit: {int(goal_time // 60)}", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 255, 0), 3)
+                cv2.putText(frame, f"Detik: {int(goal_time % 60)}", (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 255, 0), 3)
                 score += 1
                 goal_counted = True
                 print(f"Goal at {goal_time:.2f} sec")
 
-            # Jika rekaman aktif, simpan frame ke video
+            elif int(x + radius) >= mid_x:
+                goal_counted = False
+
+            # Tuliskan frame ke video dengan efek slow motion
             if recording:
-                # Menampilkan informasi goal
-                if goal_counted:
-                    cv2.putText(frame, f"Goal: {goal_time:.2f} sec", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 255, 0), 3)
-                    cv2.putText(frame, f"Menit: {int(goal_time // 60)}", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 255, 0), 3)
-                    cv2.putText(frame, f"Detik: {int(goal_time % 60)}", (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 255, 0), 3)
-                
-                out.write(frame)
+                for _ in range(slowmo_factor):
+                    out.write(frame)
 
     else:
         if recording:
@@ -125,11 +127,9 @@ while True:
     if key == ord("q"):
         break
 
-    # Jeda 3 detik setelah 'goal' sambil terus merekam
+    # Jeda 5 detik setelah 'goal'
     if goal_counted:
         time.sleep(5)
-        out.release()  # Stop and save video
-        print("Video saved")
         goal_counted = False  # Reset flag setelah jeda
 
 # Memberhentikan stream dan menutup semua jendela
