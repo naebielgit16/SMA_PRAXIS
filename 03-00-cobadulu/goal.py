@@ -23,7 +23,7 @@ counter = 0
 direction = ""
 score = 0
 goal_counted = False
-recording = False
+recording = False 
 out = None
 record_count = 1
 goal_time = None
@@ -89,18 +89,21 @@ while True:
                 recording = True
                 record_count += 1
 
-            # Setelah bola melewati garis hijau (goal), lanjutkan rekaman selama 3 detik
-            if int(y - radius) > green_line_y and recording:
+            # Setelah bola melewati garis hijau (goal)
+            if int(y - radius) > green_line_y and recording and not goal_counted:
                 goal_time = elapsed_time
-                cv2.putText(frame, f"Goal: {goal_time:.2f} sec", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 255, 0), 3)
-                cv2.putText(frame, f"Menit: {int(goal_time // 60)}", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 255, 0), 3)
-                cv2.putText(frame, f"Detik: {int(goal_time % 60)}", (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 255, 0), 3)
                 score += 1
                 goal_counted = True
                 print(f"Goal at {goal_time:.2f} sec")
 
             # Jika rekaman aktif, simpan frame ke video
             if recording:
+                # Menampilkan informasi goal
+                if goal_counted:
+                    cv2.putText(frame, f"Goal: {goal_time:.2f} sec", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 255, 0), 3)
+                    cv2.putText(frame, f"Menit: {int(goal_time // 60)}", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 255, 0), 3)
+                    cv2.putText(frame, f"Detik: {int(goal_time % 60)}", (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 255, 0), 3)
+                
                 out.write(frame)
 
     else:
@@ -122,18 +125,11 @@ while True:
     if key == ord("q"):
         break
 
-    # Jeda 3 detik setelah goal sebelum stop dan simpan video
+    # Jeda 3 detik setelah 'goal' sambil terus merekam
     if goal_counted:
-        start = time.time()
-        while time.time() - start < 3:  # Rekaman masih berjalan selama 3 detik
-            frame = vs.read()
-            frame = imutils.resize(frame, width=600)
-            out.write(frame)
-            cv2.imshow("Frame", frame)
-            cv2.waitKey(1)
-        out.release()  # Stop dan simpan video
+        time.sleep(5)
+        out.release()  # Stop and save video
         print("Video saved")
-        time.sleep(5)  # Delay program 5 detik
         goal_counted = False  # Reset flag setelah jeda
 
 # Memberhentikan stream dan menutup semua jendela
